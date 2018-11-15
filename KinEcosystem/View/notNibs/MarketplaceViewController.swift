@@ -14,9 +14,9 @@ import KinCoreSDK
 
 @available(iOS 9.0, *)
 class MarketplaceViewController: KinNavigationChildController {
-    
+
     weak var core: Core!
-    
+
     fileprivate(set) var offerViewModels = [String : OfferViewModel]()
     fileprivate let earnCellName = "EarnOfferCell"
     fileprivate let spendCellName = "SpendOfferCell"
@@ -27,7 +27,7 @@ class MarketplaceViewController: KinNavigationChildController {
     fileprivate var balanceSnapshot: Decimal = 0
     @IBOutlet weak var earnOffersCollectionView: UICollectionView!
     @IBOutlet weak var spendOffersCollectionView: UICollectionView!
-    
+
     fileprivate var firstSpendSubmitted: Bool {
         get {
             return UserDefaults.standard.bool(forKey: KinPreferenceKey.firstSpendSubmitted.rawValue)
@@ -36,7 +36,7 @@ class MarketplaceViewController: KinNavigationChildController {
             UserDefaults.standard.set(newValue, forKey: KinPreferenceKey.firstSpendSubmitted.rawValue)
         }
     }
-    
+
     override func viewDidLoad() {
         super.viewDidLoad()
         setupCollectionViews()
@@ -44,15 +44,15 @@ class MarketplaceViewController: KinNavigationChildController {
         setupNavigationItem()
         Kin.track { try MarketplacePageViewed() }
     }
-    
+
     fileprivate func setupNavigationItem() {
         navigationItem.backBarButtonItem = UIBarButtonItem(title: "", style: .plain, target: nil, action: nil)
-        title = "Kin Marketplace (Beta)"
+        title = "Kin Marketplace"
         let item = UIBarButtonItem(barButtonSystemItem: .stop, target: self, action: #selector(close))
         item.tintColor = .white
         navigationItem.rightBarButtonItem = item
     }
-    
+
     fileprivate func resultsController(for offerType: OfferType) -> NSFetchedResultsController<NSManagedObject> {
         let request = NSFetchRequest<Offer>(entityName: "Offer")
         request.predicate = NSPredicate(with: ["offer_type" : offerType.rawValue,
@@ -70,7 +70,7 @@ class MarketplaceViewController: KinNavigationChildController {
         try? frc.performFetch()
         return frc
     }
-    
+
     fileprivate func setupFRCSections() {
         let earnSection = FetchedResultsCollectionSection(collection: earnOffersCollectionView, frc: resultsController(for: .earn)) { [weak self] cell, ip in
             guard   let this = self,
@@ -79,7 +79,7 @@ class MarketplaceViewController: KinNavigationChildController {
                     logWarn("cell configure failed")
                     return
             }
-            
+
             var viewModel: OfferViewModel
             if let offerViewModel = this.offerViewModels[offer.id] {
                 viewModel = offerViewModel
@@ -98,7 +98,7 @@ class MarketplaceViewController: KinNavigationChildController {
             earnCell.subtitle.attributedText = viewModel.subtitle
         }
         earnOffersCollectionView.add(fetchedResultsSection: earnSection)
-        
+
         let spendSection = FetchedResultsCollectionSection(collection: spendOffersCollectionView, frc: resultsController(for: .spend)) { [weak self] cell, ip in
             guard   let this = self,
                 let offer = this.spendOffersCollectionView.objectForCollection(at: ip) as? Offer,
@@ -106,7 +106,7 @@ class MarketplaceViewController: KinNavigationChildController {
                     logWarn("cell configure failed")
                     return
             }
-            
+
             var viewModel: OfferViewModel
             if let offerViewModel = this.offerViewModels[offer.id] {
                 viewModel = offerViewModel
@@ -126,7 +126,7 @@ class MarketplaceViewController: KinNavigationChildController {
         }
         spendOffersCollectionView.add(fetchedResultsSection: spendSection)
     }
-    
+
     fileprivate func setupCollectionViews() {
         earnOffersCollectionView.contentInset = .zero
         earnOffersCollectionView.register(UINib(nibName: earnCellName, bundle: Bundle.ecosystem),
@@ -137,7 +137,7 @@ class MarketplaceViewController: KinNavigationChildController {
                                            forCellWithReuseIdentifier: spendCellName)
         spendOffersCollectionView.decelerationRate = UIScrollViewDecelerationRateFast
     }
-    
+
     @objc func close() {
         Kin.track { try BackButtonOnMarketplacePageTapped() }
         Kin.shared.closeMarketPlace()
@@ -183,7 +183,7 @@ extension MarketplaceViewController: UICollectionViewDelegate, UICollectionViewD
         return cell
     }
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        
+
         guard let offer = collectionView.objectForCollection(at: indexPath) as? Offer else { return }
         guard offer.offerContentType != .external else {
             let nativeOffer = offer.nativeOffer
@@ -205,7 +205,7 @@ extension MarketplaceViewController: UICollectionViewDelegate, UICollectionViewD
             htmlController = html
             let navContoller = KinBaseNavigationController(rootViewController: html)
             self.kinNavigationController?.present(navContoller, animated: true)
-            
+
             if let type = KBITypes.OfferType(rawValue: offer.offerContentType.rawValue) {
                 Kin.track { try EarnOfferTapped(kinAmount: Double(offer.amount), offerID: offer.id, offerType: type) }
                 Kin.track { try EarnOrderCreationRequested(kinAmount: Double(offer.amount), offerID: offer.id, offerType: type) }
@@ -236,10 +236,10 @@ extension MarketplaceViewController: UICollectionViewDelegate, UICollectionViewD
             controller.modalPresentationStyle = .custom
             controller.transitioningDelegate = transition
             self.kinNavigationController?.present(controller, animated: true)
-            
+
             var submissionPromise: Promise<Void>? = nil
             var successPromise: Promise<String>? = nil
-            
+
             if firstSpendSubmitted == false {
                 firstSpendSubmitted = true
                 submissionPromise = Promise<Void>()
@@ -270,18 +270,18 @@ extension MarketplaceViewController: UICollectionViewDelegate, UICollectionViewD
                     })
                 }
             }
-            
+
             Flows.spend(offerId: offer.id,
                         confirmPromise: controller.spend,
                         submissionPromise: submissionPromise,
                         successPromise: successPromise,
                         core: core)
-            
-            
+
+
         }
-        
-        
-        
+
+
+
     }
 }
 
