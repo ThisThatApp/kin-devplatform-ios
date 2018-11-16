@@ -9,7 +9,7 @@ Kin Developer Platform SDK for iOS
   s.homepage         = 'https://kinecosystem.org'
   s.license          = { :type => 'MIT', :file => 'LICENSE' }
   s.author           = { 'Kin' => 'kin@kinfoundation.com' }
-  s.source           = { :git => 'https://github.com/kinecosystem/kin-devplatform-ios', :tag => s.version.to_s }
+  s.source           = { :git => 'https://github.com/ThisThatApp/kin-devplatform-ios', branch: 'master' }
 
   s.ios.deployment_target = '8.1'
 
