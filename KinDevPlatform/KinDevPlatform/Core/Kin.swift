@@ -142,7 +142,11 @@ public class Kin: NSObject {
         Kin.track { try KinSDKInitiated() }
         let lastUser = UserDefaults.standard.string(forKey: KinPreferenceKey.lastSignedInUser.rawValue)
         let lastEnvironmentName = UserDefaults.standard.string(forKey: KinPreferenceKey.lastEnvironment.rawValue)
-        if lastUser != userId || (lastEnvironmentName != nil && lastEnvironmentName != environment.name) {
+
+        let isNewUser = lastUser != nil && lastUser != userId
+        let isNewEnvironmentName = lastEnvironmentName != nil && lastEnvironmentName != environment.name
+
+        if isNewUser || isNewEnvironmentName {
             needsReset = true
             logInfo("new user or environment type detected - resetting everything")
             UserDefaults.standard.set(false, forKey: KinPreferenceKey.firstSpendSubmitted.rawValue)
@@ -205,6 +209,9 @@ public class Kin: NSObject {
                             blockchain: startData.blockchain)
 
         self.core = core
+
+        // Needs to be reset after EcosystemNet()
+        needsReset = false
 
         onboardPromise = network.authorize()
             .then { _ in
@@ -581,8 +588,18 @@ extension Kin: KinMigrationManagerDelegate {
     }
 
     public func kinMigrationManager(_ kinMigrationManager: KinMigrationManager, readyWith client: KinClientProtocol) {
-        needsReset = client.accounts.count > 1
         onboardPromise = nil
+
+        // If we need to reset at this point, it's because the user switched accounts.
+        if needsReset {
+            client.deleteKeystore()
+        }
+
+        // Setting reset here is needed during the migration.
+        if client.accounts.count > 1 {
+            try? client.deleteAccount(at: 0)
+            needsReset = true
+        }
 
         do {
             if let account = try startData?.blockchain.startAccount(with: client) {
