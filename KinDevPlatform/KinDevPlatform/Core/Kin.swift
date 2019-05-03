@@ -125,8 +125,14 @@ public class Kin: NSObject {
      - Returns: `nil` if the migration module is not ready, a `Bool` otherwise.
      */
     public var isMigrated: Bool? {
-        return core?.blockchain.migrationManager.isMigrated
+        guard let accountPublicAddress = accountPublicAddress, let core = core else {
+            return nil
+        }
+
+        return core.blockchain.migrationManager.isAccountMigrated(publicAddress: accountPublicAddress)
     }
+
+    private var accountPublicAddress: String?
 
     private var startData: StartData?
     
@@ -137,13 +143,14 @@ public class Kin: NSObject {
                       environment: Environment) throws
     {
         core = nil
+        accountPublicAddress = nil
         bi = try BIClient(endpoint: URL(string: environment.BIURL)!)
         setupBIProxies(appIdValue: appIdValue, userId: userId)
         Kin.track { try KinSDKInitiated() }
         let lastUser = UserDefaults.standard.string(forKey: KinPreferenceKey.lastSignedInUser.rawValue)
         let lastEnvironmentName = UserDefaults.standard.string(forKey: KinPreferenceKey.lastEnvironment.rawValue)
 
-        let isNewUser = lastUser != nil && lastUser != userId
+        let isNewUser = lastUser != userId
         let isNewEnvironmentName = lastEnvironmentName != nil && lastEnvironmentName != environment.name
 
         if isNewUser || isNewEnvironmentName {
@@ -190,6 +197,8 @@ public class Kin: NSObject {
         }
 
         self.startData = nil
+
+        accountPublicAddress = account.publicAddress
 
         guard let marketplaceURL = URL(string: startData.environment.marketplaceURL) else {
             throw KinEcosystemError.client(.badRequest, nil)
